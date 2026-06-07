@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QMenu
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QRect
 
-from pynput import keyboard
+from pynput import keyboard, mouse
 
 
 class FrierenCompanion(QWidget):
@@ -20,6 +20,7 @@ class FrierenCompanion(QWidget):
         self.setup_ui()
         self.start_keyboard_listener()
         self.start_state_checker()
+        self.start_mouse_listener()
         self.last_activity_time = time.time()
         self.is_dragging = False
         self.wake_up_until = 0
@@ -60,6 +61,24 @@ class FrierenCompanion(QWidget):
             self.is_dragging = False
             self.last_activity_time = time.time()
         
+    def on_mouse_move(self, x, y):
+
+        self.last_activity_time = time.time()
+
+        if self.current_state == "SLEEPING":
+            self.wake_up_until = time.time() + 2
+    
+    def start_mouse_listener(self):
+
+        listener = mouse.Listener(
+            on_move=self.on_mouse_move
+        )
+
+        listener.daemon = True
+        listener.start()
+    
+
+
     def setup_ui(self):
 
         self.setWindowFlags(
@@ -101,6 +120,7 @@ class FrierenCompanion(QWidget):
 
         self.original_geometry = self.geometry()
    
+
 
     def start_keyboard_listener(self):
 
@@ -144,6 +164,8 @@ class FrierenCompanion(QWidget):
             else:
 
                 new_state = "IDLE"
+            
+            self.change_state(new_state)
 
             if new_state != self.current_state:
 
@@ -153,6 +175,8 @@ class FrierenCompanion(QWidget):
 
                 self.state_label.setText(
                     f"State: {self.current_state}"
+
+            
             )
 
     def on_key_press(self, key):
@@ -249,6 +273,39 @@ class FrierenCompanion(QWidget):
         )
 
         self.image_label.setPixmap(pixmap)
+    
+    def change_state(self, new_state):
+
+        self.current_state = new_state
+
+        self.state_label.setText(
+            f"State: {new_state}"
+        )
+
+        if new_state == "IDLE":
+            self.set_character_image(
+                "assets/frieren.png"
+            )
+
+        elif new_state == "TYPING":
+            self.set_character_image(
+                "assets/fri_writting.png"
+            )
+
+        elif new_state == "SLEEPING":
+            self.set_character_image(
+                "assets/fri_sleeping.png"
+            )
+        
+        elif new_state == "DRAGGING":
+            self.set_character_image(
+                "assets/fri_dragging.png"
+            )
+        
+        elif new_state == "WAKE_UP":
+            self.set_character_image(
+                "assets/fri_wake_up.png"
+            )
         
 if __name__ == "__main__":
 
