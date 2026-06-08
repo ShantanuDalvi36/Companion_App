@@ -11,6 +11,7 @@ from pynput import keyboard, mouse
 
 class FrierenCompanion(QWidget):
 
+ # Initialize variables, UI, listeners, and timers
     def __init__(self):
         super().__init__()
 
@@ -25,6 +26,7 @@ class FrierenCompanion(QWidget):
         self.is_dragging = False
         self.wake_up_until = 0
 
+# Handle mouse click and start dragging
     def mousePressEvent(self, event):
 
         if event.button() == Qt.MouseButton.LeftButton:
@@ -38,6 +40,7 @@ class FrierenCompanion(QWidget):
 
         event.accept()
 
+# Move the companion while dragging
     def mouseMoveEvent(self, event):
 
         if self.drag_position is not None:
@@ -54,20 +57,23 @@ class FrierenCompanion(QWidget):
         if self.current_state == "SLEEPING":
             self.wake_up_until = time.time() + 2
     
+# Stop dragging when mouse button is released
     def mouseReleaseEvent(self, event):
 
             self.drag_position = None
 
             self.is_dragging = False
             self.last_activity_time = time.time()
-        
+
+# Detect global mouse movement
     def on_mouse_move(self, x, y):
 
         self.last_activity_time = time.time()
 
         if self.current_state == "SLEEPING":
             self.wake_up_until = time.time() + 2
-    
+
+# Start a background mouse listener
     def start_mouse_listener(self):
 
         listener = mouse.Listener(
@@ -77,8 +83,7 @@ class FrierenCompanion(QWidget):
         listener.daemon = True
         listener.start()
     
-
-
+# Create the companion window and widgets
     def setup_ui(self):
 
         self.setWindowFlags(
@@ -121,7 +126,7 @@ class FrierenCompanion(QWidget):
         self.original_geometry = self.geometry()
    
 
-
+# Start listening for keyboard input
     def start_keyboard_listener(self):
 
         listener = keyboard.Listener(
@@ -131,6 +136,7 @@ class FrierenCompanion(QWidget):
         listener.daemon = True
         listener.start()
 
+# Start timer that checks and updates states
     def start_state_checker(self):
 
         self.timer = QTimer()
@@ -141,6 +147,7 @@ class FrierenCompanion(QWidget):
 
         self.timer.start(500)
 
+# Determine and update the current companion state
     def update_state(self):
 
             current_time = time.time()
@@ -164,6 +171,9 @@ class FrierenCompanion(QWidget):
             else:
 
                 new_state = "IDLE"
+
+            if self.current_state == "LEAVING":
+                 return
             
             self.change_state(new_state)
 
@@ -179,6 +189,7 @@ class FrierenCompanion(QWidget):
             
             )
 
+# Record keyboard activity
     def on_key_press(self, key):
 
         now = time.time()
@@ -189,7 +200,7 @@ class FrierenCompanion(QWidget):
         if self.current_state == "SLEEPING":
             self.wake_up_until = now + 2
     
-
+# Play zoom-out animation and close application
     def zoom_out_and_close(self):
 
             print("Zooming out")
@@ -223,10 +234,12 @@ class FrierenCompanion(QWidget):
 
             self.exit_animation.start()
         
-    
+# Show leave animation before exiting   
     def close_with_animation(self):
 
         print("Playing leave animation")
+
+        self.change_state("LEAVING")
 
         self.set_character_image(
             "assets/fri_leaving.png"
@@ -237,6 +250,7 @@ class FrierenCompanion(QWidget):
             self.zoom_out_and_close
         )
 
+# Display right-click context menu
     def contextMenuEvent(self, event):
 
         menu = QMenu(self)
@@ -254,9 +268,10 @@ class FrierenCompanion(QWidget):
             self.hide()
 
         elif action == exit_action:
+            
             self.close_with_animation()
         
-
+ # Change the displayed character image
     def set_character_image(self, image_path):
 
         pixmap = QPixmap(image_path)
@@ -273,7 +288,8 @@ class FrierenCompanion(QWidget):
         )
 
         self.image_label.setPixmap(pixmap)
-    
+
+# Update state and corresponding character image 
     def change_state(self, new_state):
 
         self.current_state = new_state
@@ -306,7 +322,13 @@ class FrierenCompanion(QWidget):
             self.set_character_image(
                 "assets/fri_wake_up.png"
             )
-        
+
+        elif new_state == "LEAVING":
+            self.set_character_image(
+                "assets/fri_leaving.png"
+            )
+
+# Main method       
 if __name__ == "__main__":
 
     app = QApplication(sys.argv)
