@@ -13,43 +13,49 @@ class FrierenCompanion(QWidget):
 
  # Initialize variables, UI, listeners, and timers
    def __init__(self):
-    super().__init__()
+        super().__init__()
 
-    self.last_keypress_time = 0
-    self.current_state = "IDLE"
-    self.drag_position = None
+        self.last_keypress_time = 0
+        self.current_state = "IDLE"
+        self.drag_position = None
 
-    self.last_activity_time = time.time()
-    self.is_dragging = False
-    self.wake_up_until = 0
+        self.last_activity_time = time.time()
+        self.is_dragging = False
+        self.wake_up_until = 0
 
-    self.normal_width = 180
-    self.normal_height = 180
+        self.normal_width = 180
+        self.normal_height = 180
 
-    self.setup_ui()
+        self.setup_ui()
 
-    self.resize(self.normal_width, self.normal_height)
-    self.show()
+        self.resize(self.normal_width, self.normal_height)
+        self.show()
 
-    self.move_to_taskbar_position()
+        self.move_to_taskbar_position()
 
-    self.start_keyboard_listener()
-    self.start_mouse_listener()
+        self.start_keyboard_listener()
+        self.start_mouse_listener()
 
-    self.idle_images = [
-    "assets/frieren.png",
-    "assets/frieren.png",
-    "assets/frieren.png",
-    "assets/idle1.png",
-    "assets/idle2.png",
-    "assets/idle3.png"
-]
+        self.last_petting_movement = 0
 
-    self.last_idle_switch = time.time()
-    self.idle_switch_interval = random.randint(15, 30)  # seconds
-    self.visual_lock = False
+        self.idle_images = [
+        "assets/frieren.png",
+        "assets/frieren.png",
+        "assets/frieren.png",
+        "assets/idle1.png",
+        "assets/idle2.png",
+        "assets/idle3.png"
+        ]
 
-    QTimer.singleShot(0, self.play_entry_animation)
+        self.is_hovering = False
+        self.last_hover_move = 0
+        self.petting_started = False
+
+        self.last_idle_switch = time.time()
+        self.idle_switch_interval = random.randint(30, 45)  # seconds
+        self.visual_lock = False
+
+        QTimer.singleShot(0, self.play_entry_animation)
 
 # Create the companion window and widgets
    def setup_ui(self):
@@ -111,17 +117,24 @@ class FrierenCompanion(QWidget):
 # Move the companion while dragging
    def mouseMoveEvent(self, event):
 
+        print("Mouse moving on companion")
+
         if self.drag_position is not None:
 
             self.move(
                 event.globalPosition().toPoint()
                 - self.drag_position
             )
-
+        
             event.accept()
 
             self.last_activity_time = time.time()
+        
+        if not self.is_dragging:
 
+            self.last_hover_move = time.time()
+            self.last_petting_movement = time.time()
+   
         if self.current_state == "SLEEPING":
             self.wake_up_until = time.time() + 2
     
@@ -137,6 +150,9 @@ class FrierenCompanion(QWidget):
 # Detect global mouse movement
    def on_mouse_move(self, x, y):
 
+        if not self.is_dragging:
+            self.last_hover_move = time.time()
+   
         self.last_activity_time = time.time()
 
         if self.current_state == "SLEEPING":
@@ -151,6 +167,21 @@ class FrierenCompanion(QWidget):
 
         listener.daemon = True
         listener.start()
+
+   def enterEvent(self, event):
+
+        self.is_hovering = True
+        self.last_hover_move = time.time()
+        self.hover_start_time = time.time()
+    
+   def leaveEvent(self, event):
+
+        self.is_hovering = False
+        self.petting_started = False
+
+        if self.current_state == "PETTING":
+            self.change_state("IDLE")
+
     
 
 # Start listening for keyboard input
@@ -163,6 +194,7 @@ class FrierenCompanion(QWidget):
         listener.daemon = True
         listener.start()
 
+  
 # Start timer that checks and updates states
    def start_state_checker(self):
 
@@ -175,6 +207,10 @@ class FrierenCompanion(QWidget):
         self.idle_timer = QTimer()
         self.idle_timer.timeout.connect(self.handle_idle_animation)
         self.idle_timer.start(3000)
+        
+        self.pet_timer = QTimer()
+        self.pet_timer.timeout.connect(self.check_petting)
+        self.pet_timer.start(100)
 
         self.timer.start(100)
 
@@ -206,6 +242,28 @@ class FrierenCompanion(QWidget):
             print(f"{self.current_state} -> {new_state}")
 
             self.change_state(new_state)
+            
+   def check_petting(self):
+
+        current_time = time.time()
+
+        if self.is_hovering:
+
+            if current_time - self.hover_start_time > 1:
+
+                if current_time - self.last_hover_move < 1:
+
+                    if self.current_state != "PETTING":
+
+                        self.change_state("PETTING")
+
+                    self.last_petting_movement = current_time
+
+        if self.current_state == "PETTING":
+
+            if current_time - self.last_petting_movement > 0.5:
+
+                self.change_state("IDLE")
 
 # Record keyboard activity
    def on_key_press(self, key):
@@ -350,7 +408,7 @@ class FrierenCompanion(QWidget):
 
             self.last_idle_switch = current_time
 
-            self.idle_switch_interval = random.randint(15, 30)
+            self.idle_switch_interval = random.randint(30, 45)
 
 # Update state and corresponding character image 
    def change_state(self, new_state):
@@ -375,6 +433,9 @@ class FrierenCompanion(QWidget):
 
         elif new_state == "LEAVING":
             self.set_character_image("assets/fri_leaving.png")
+        
+        elif new_state == "PETTING":
+            self.set_character_image("assets/fri_petting.png")
 
         elif new_state == "IDLE":
             self.set_character_image("assets/frieren.png")
