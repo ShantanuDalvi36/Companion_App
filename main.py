@@ -1,7 +1,7 @@
 import sys
 import time
 from threading import Thread
-
+import random
 from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QMenu
 from PyQt6.QtGui import QPixmap, QGuiApplication
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QRect
@@ -23,8 +23,8 @@ class FrierenCompanion(QWidget):
     self.is_dragging = False
     self.wake_up_until = 0
 
-    self.normal_width = 250
-    self.normal_height = 250
+    self.normal_width = 180
+    self.normal_height = 180
 
     self.setup_ui()
 
@@ -35,6 +35,19 @@ class FrierenCompanion(QWidget):
 
     self.start_keyboard_listener()
     self.start_mouse_listener()
+
+    self.idle_images = [
+    "assets/frieren.png",
+    "assets/frieren.png",
+    "assets/frieren.png",
+    "assets/idle1.png",
+    "assets/idle2.png",
+    "assets/idle3.png"
+]
+
+    self.last_idle_switch = time.time()
+    self.idle_switch_interval = random.randint(15, 30)  # seconds
+    self.visual_lock = False
 
     QTimer.singleShot(0, self.play_entry_animation)
 
@@ -55,8 +68,8 @@ class FrierenCompanion(QWidget):
         self.image_label = QLabel()
         pixmap = QPixmap("assets/frieren.png")
         pixmap = pixmap.scaled(
-            250,
-            250,
+            self.normal_width,
+            self.normal_height,
             Qt.AspectRatioMode.KeepAspectRatio,
             Qt.TransformationMode.SmoothTransformation
         )
@@ -77,9 +90,6 @@ class FrierenCompanion(QWidget):
         self.setLayout(layout)
 
         self.move(100, 100)
-
-        self.normal_width = 250
-        self.normal_height = 250
 
         self.original_geometry = self.geometry()
 
@@ -122,6 +132,7 @@ class FrierenCompanion(QWidget):
 
             self.is_dragging = False
             self.last_activity_time = time.time()
+            self.update_state()
 
 # Detect global mouse movement
    def on_mouse_move(self, x, y):
@@ -161,7 +172,11 @@ class FrierenCompanion(QWidget):
             self.update_state
         )
 
-        self.timer.start(500)
+        self.idle_timer = QTimer()
+        self.idle_timer.timeout.connect(self.handle_idle_animation)
+        self.idle_timer.start(3000)
+
+        self.timer.start(100)
 
 # Determine and update the current companion state
    def update_state(self):
@@ -177,16 +192,19 @@ class FrierenCompanion(QWidget):
         elif current_time < self.wake_up_until:
             new_state = "WAKE_UP"
 
-        elif current_time - self.last_activity_time > 10:
+        elif current_time - self.last_activity_time > 240:
             new_state = "SLEEPING"
 
-        elif current_time - self.last_keypress_time < 2:
+        elif current_time - self.last_keypress_time < 3:
             new_state = "TYPING"
 
         else:
             new_state = "IDLE"
 
         if new_state != self.current_state:
+
+            print(f"{self.current_state} -> {new_state}")
+
             self.change_state(new_state)
 
 # Record keyboard activity
@@ -199,6 +217,9 @@ class FrierenCompanion(QWidget):
 
         if self.current_state == "SLEEPING":
             self.wake_up_until = now + 2
+        
+        if self.current_state != "TYPING":
+            self.change_state("TYPING")
     
 # Show entry animation 
    def play_entry_animation(self):
@@ -293,8 +314,8 @@ class FrierenCompanion(QWidget):
             return
 
         pixmap = pixmap.scaled(
-            250,
-            250,
+            self.normal_width,
+            self.normal_height,
             Qt.AspectRatioMode.KeepAspectRatio,
             Qt.TransformationMode.SmoothTransformation
         )
@@ -306,51 +327,66 @@ class FrierenCompanion(QWidget):
 
         screen = QGuiApplication.primaryScreen().geometry()
 
-        taskbar_height = 60  # approximate (works for most Windows setups)
-
-        x = screen.width() - self.normal_width - 150
-        y = screen.height() - self.normal_height - 213
+        x = screen.width() - self.normal_width - 110
+        y = screen.height() - self.normal_height - 185
 
         self.move(x, y)
+
+# Handles indle state random animations
+   def handle_idle_animation(self):
+
+        if self.current_state != "IDLE":
+            return
+
+        if self.visual_lock:
+            return
+
+        current_time = time.time()
+
+        if current_time - self.last_idle_switch > self.idle_switch_interval:
+
+            image = random.choice(self.idle_images)
+            self.set_character_image(image)
+
+            self.last_idle_switch = current_time
+
+            self.idle_switch_interval = random.randint(15, 30)
 
 # Update state and corresponding character image 
    def change_state(self, new_state):
 
         self.current_state = new_state
+        self.state_label.setText(f"State: {new_state}")
 
-        self.state_label.setText(
-            f"State: {new_state}"
-        )
+        # LOCK prevents idle timer from overriding visuals
+        self.visual_lock = True
 
-        if new_state == "IDLE":
-            self.set_character_image(
-                "assets/frieren.png"
-            )
-
-        elif new_state == "TYPING":
-            self.set_character_image(
-                "assets/fri_writting.png"
-            )
+        if new_state == "TYPING":
+            self.set_character_image("assets/fri_writting.png")
 
         elif new_state == "SLEEPING":
-            self.set_character_image(
-                "assets/fri_sleeping.png"
-            )
-        
+            self.set_character_image("assets/fri_sleeping.png")
+
         elif new_state == "DRAGGING":
-            self.set_character_image(
-                "assets/fri_dragging.png"
-            )
-        
+            self.set_character_image("assets/fri_dragging.png")
+
         elif new_state == "WAKE_UP":
-            self.set_character_image(
-                "assets/fri_wake_up.png"
-            )
+            self.set_character_image("assets/fri_wake_up.png")
 
         elif new_state == "LEAVING":
-            self.set_character_image(
-                "assets/fri_leaving.png"
-            )
+            self.set_character_image("assets/fri_leaving.png")
+
+        elif new_state == "IDLE":
+            self.set_character_image("assets/frieren.png")
+
+            self.last_idle_switch = time.time()
+            self.idle_switch_interval = random.randint(15, 30)
+
+        # unlock after short delay
+        QTimer.singleShot(300, self.unlock_visual)
+
+   def unlock_visual(self):
+        self.visual_lock = False
 
 # Main method       
 if __name__ == "__main__":
