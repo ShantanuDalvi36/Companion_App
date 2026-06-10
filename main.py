@@ -5,7 +5,7 @@ import random
 from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QMenu
 from PyQt6.QtGui import QPixmap, QGuiApplication
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QRect
-
+import win32gui 
 from pynput import keyboard, mouse
 
 
@@ -36,8 +36,24 @@ class FrierenCompanion(QWidget):
         self.start_keyboard_listener()
         self.start_mouse_listener()
 
+        self.active_app = "OTHER"
+        self.active_tab = ""
+        self.last_tab = ""
+
         self.last_petting_movement = 0
 
+        self.app_keywords = {
+            "youtube": "WATCHING",
+            "chatgpt": "AI",
+            "github": "CODING",
+            "leetcode": "STUDYING",
+            "stackoverflow": "CODING",
+            "vscode": "CODING",
+            "visual studio code": "CODING",
+            "discord": "CHAT",
+            "spotify": "MUSIC"
+        }
+        
         self.idle_images = [
         "assets/frieren.png",
         "assets/frieren.png",
@@ -194,23 +210,71 @@ class FrierenCompanion(QWidget):
         listener.daemon = True
         listener.start()
 
-  
+# checks what windows are active 
+   def get_active_window(self):
+
+        window = win32gui.GetForegroundWindow()
+
+        return win32gui.GetWindowText(window)
+   
+# checks for active apps and tabs
+   def check_active_app(self):
+
+        title = self.get_active_window()
+        print(title)
+
+   def check_active_app(self):
+
+        title = self.get_active_window()
+
+        if title != self.last_tab:
+
+            self.active_tab = title
+            self.last_tab = title
+
+            print(f"Tab: {title}")
+
+        lower_title = title.lower()
+
+        detected_app = "OTHER"
+
+        for keyword, app_type in self.app_keywords.items():
+
+            if keyword in lower_title:
+
+                detected_app = app_type
+                break
+
+        if detected_app != self.active_app:
+
+            self.active_app = detected_app
+
+            print(f"Activity: {self.active_app}")
+        
+      
 # Start timer that checks and updates states
    def start_state_checker(self):
 
+        print("STATE CHECKER STARTED")
         self.timer = QTimer()
 
         self.timer.timeout.connect(
             self.update_state
         )
-
+        #check for idle state
         self.idle_timer = QTimer()
         self.idle_timer.timeout.connect(self.handle_idle_animation)
         self.idle_timer.start(3000)
         
+        #checks for petting state
         self.pet_timer = QTimer()
         self.pet_timer.timeout.connect(self.check_petting)
         self.pet_timer.start(100)
+
+        #checks for active windows(apps)
+        self.app_timer = QTimer()
+        self.app_timer.timeout.connect(self.check_active_app)
+        self.app_timer.start(2000)
 
         self.timer.start(100)
 
@@ -242,7 +306,8 @@ class FrierenCompanion(QWidget):
             print(f"{self.current_state} -> {new_state}")
 
             self.change_state(new_state)
-            
+
+# checks whether mouse is in pettable area       
    def check_petting(self):
 
         current_time = time.time()
@@ -299,9 +364,11 @@ class FrierenCompanion(QWidget):
 # starts state machine after entry animation
    def enable_state_machine(self):
 
+        print("ENTRY FINISHED")
+
         self.start_state_checker()
 
-# Show leave animation before exiting   
+    # Show leave animation before exiting   
    def close_with_animation(self):
 
         self.change_state("LEAVING")
