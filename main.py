@@ -14,14 +14,16 @@ class FrierenCompanion(QWidget):
  # Initialize variables, UI, listeners, and timers
    def __init__(self):
         super().__init__()
-
-        self.last_keypress_time = 0
         self.current_state = "IDLE"
-        self.drag_position = None
 
+    # mouse event
+        self.last_keypress_time = 0
+        self.drag_position = None
         self.last_activity_time = time.time()
         self.is_dragging = False
         self.wake_up_until = 0
+        self.last_petting_movement = 0
+        self.start_mouse_listener()
 
         self.normal_width = 180
         self.normal_height = 180
@@ -34,7 +36,7 @@ class FrierenCompanion(QWidget):
         self.move_to_taskbar_position()
 
         self.start_keyboard_listener()
-        self.start_mouse_listener()
+        
 
         self.active_app = "OTHER"
         self.active_tab = ""
@@ -61,6 +63,22 @@ class FrierenCompanion(QWidget):
         "assets/idle1.png",
         "assets/idle2.png",
         "assets/idle3.png"
+        ]
+
+        self.coding_images = [
+            "assets/fri_writting.png"
+        ]
+
+        self.ai_images = [
+            "assets/fri_wake_up.png"
+        ]
+
+        self.watching_images = [
+            "assets/frieren.png"
+        ]
+
+        self.chat_images = [
+            "assets/fri_dragging.png"
         ]
 
         self.is_hovering = False
@@ -460,22 +478,43 @@ class FrierenCompanion(QWidget):
 # Handles indle state random animations
    def handle_idle_animation(self):
 
-        if self.current_state != "IDLE":
-            return
+    if self.current_state != "IDLE":
+        return
 
-        if self.visual_lock:
-            return
+    if self.visual_lock:
+        return
 
-        current_time = time.time()
+    current_time = time.time()
 
-        if current_time - self.last_idle_switch > self.idle_switch_interval:
+    if current_time - self.last_idle_switch > self.idle_switch_interval:
+
+        if self.active_app == "CODING":
+
+            image = random.choice(self.coding_images)
+
+        elif self.active_app == "AI":
+
+            image = random.choice(self.ai_images)
+
+        elif self.active_app == "WATCHING":
+
+            image = random.choice(self.watching_images)
+
+        elif self.active_app == "CHAT":
+
+            image = random.choice(self.chat_images)
+
+        else:
 
             image = random.choice(self.idle_images)
-            self.set_character_image(image)
 
-            self.last_idle_switch = current_time
+        self.set_character_image(image)
 
-            self.idle_switch_interval = random.randint(30, 45)
+        self.last_idle_switch = current_time
+
+        self.idle_switch_interval = random.randint(30, 45)
+
+       
 
 # Update state and corresponding character image 
    def change_state(self, new_state):
