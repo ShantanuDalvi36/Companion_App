@@ -53,7 +53,8 @@ class FrierenCompanion(QWidget):
             "vscode": "CODING",
             "visual studio code": "CODING",
             "discord": "CHAT",
-            "spotify": "MUSIC"
+            "spotify": "MUSIC",
+            "root/Shell":"CODING"
         }
         
         self.idle_images = [
@@ -115,6 +116,65 @@ class FrierenCompanion(QWidget):
         )
 
         self.image_label.setPixmap(pixmap)
+
+        self.dialogue_label = QLabel("")
+
+        self.dialogue_label.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool
+        )
+
+        self.dialogue_label.setStyleSheet("""
+                QLabel {
+                    background-color: #6B89A8;
+                    color: white;
+                    border: none;
+                    border-radius: 25px;
+                    padding: 12px 20px;
+                    font-size: 12pt;
+                }
+            """)
+
+        self.dot1 = QLabel("")
+        self.dot2 = QLabel("")
+        self.dot3 = QLabel("")
+
+        for dot in [self.dot1, self.dot2, self.dot3]:
+            dot.setWindowFlags(
+                Qt.WindowType.FramelessWindowHint |
+                Qt.WindowType.WindowStaysOnTopHint |
+                Qt.WindowType.Tool
+            )
+
+
+        self.dot1.setFixedSize(14, 14)
+        self.dot2.setFixedSize(10, 10)
+        self.dot3.setFixedSize(6, 6)
+
+        self.dot1.setStyleSheet("""
+        background-color: #6B89A8;
+        border-radius: 7px;
+        """)
+
+        self.dot2.setStyleSheet("""
+        background-color: #6B89A8;
+        border-radius: 5px;
+        """)
+
+        self.dot3.setStyleSheet("""
+        background-color: #6B89A8;
+        border-radius: 3px;
+        """)
+
+        self.dialogue_label.setMaximumWidth(250)
+        self.dialogue_label.setWordWrap(True)
+
+        self.dot1.hide()
+        self.dot2.hide()
+        self.dot3.hide()
+
+        self.dialogue_label.hide()
         
         self.state_label = QLabel("State: IDLE")
         self.state_label.setStyleSheet("""
@@ -133,6 +193,67 @@ class FrierenCompanion(QWidget):
 
         self.original_geometry = self.geometry()
 
+# Dialogue box 
+   def show_dialogue(self, text):
+
+    self.dialogue_label.setText(text)
+    self.dialogue_label.adjustSize()
+
+    companion_x = self.x()
+    companion_y = self.y()
+
+    bubble_x = (
+        companion_x
+        + self.width() // 2
+        - self.dialogue_label.width() // 2
+        -80
+    )
+
+    bubble_y = (
+        companion_y
+        - self.dialogue_label.height()
+        + 10
+    )
+
+    self.dialogue_label.move(
+        bubble_x,
+        bubble_y
+    )
+
+    self.dot1.move(
+        bubble_x + 45,
+        bubble_y + self.dialogue_label.height() - 2
+    )
+
+    self.dot2.move(
+        bubble_x + 60,
+        bubble_y + self.dialogue_label.height() + 12
+    )
+
+    self.dot3.move(
+        bubble_x + 72,
+        bubble_y + self.dialogue_label.height() + 24
+    )
+
+    self.dialogue_label.show()
+
+    self.dot1.show()
+    self.dot2.show()
+    self.dot3.show()
+
+    QTimer.singleShot(
+        3000,
+        self.hide_dialogue
+    )
+
+# Hide dialogue box
+   def hide_dialogue(self):
+
+        self.dialogue_label.hide()
+
+        self.dot1.hide()
+        self.dot2.hide()
+        self.dot3.hide()
 
 # Handle mouse click and start dragging
    def mousePressEvent(self, event):
@@ -383,6 +504,7 @@ class FrierenCompanion(QWidget):
    def enable_state_machine(self):
 
         print("ENTRY FINISHED")
+        self.show_dialogue("Hello.")
 
         self.start_state_checker()
 
