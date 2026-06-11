@@ -90,6 +90,34 @@ class FrierenCompanion(QWidget):
         self.idle_switch_interval = random.randint(30, 45)  # seconds
         self.visual_lock = False
 
+        self.coding_dialogues = [
+            "More coding?",
+            "Try not to create bugs.",
+            "Another project?",
+            "Back to work."
+        ]
+
+        self.ai_dialogues = [
+            "Researching something?",
+            "Interesting...",
+            "Asking ChatGPT again?",
+            "Learning something new?"
+        ]
+
+        self.watching_dialogues = [
+            "Taking a break?",
+            "Watching videos?",
+            "Looks relaxing."
+        ]
+
+        self.chat_dialogues = [
+            "Talking with someone?",
+            "Busy conversation?",
+            "Hope it's important."
+        ]
+        self.last_dialogue_time = 0
+        self.dialogue_cooldown = 30
+
         QTimer.singleShot(0, self.play_entry_animation)
 
 # Create the companion window and widgets
@@ -193,6 +221,41 @@ class FrierenCompanion(QWidget):
 
         self.original_geometry = self.geometry()
 
+# show Dialogue 
+   def app_reaction(self):
+
+    current_time = time.time()
+
+    if current_time - self.last_dialogue_time < self.dialogue_cooldown:
+        return
+
+    import random
+
+    if self.active_app == "CODING":
+
+        self.show_dialogue(
+            random.choice(self.coding_dialogues)
+        )
+
+    elif self.active_app == "AI":
+
+        self.show_dialogue(
+            random.choice(self.ai_dialogues)
+        )
+
+    elif self.active_app == "WATCHING":
+
+        self.show_dialogue(
+            random.choice(self.watching_dialogues)
+        )
+
+    elif self.active_app == "CHAT":
+
+        self.show_dialogue(
+            random.choice(self.chat_dialogues)
+        )
+
+    self.last_dialogue_time = current_time
 # Dialogue box 
    def show_dialogue(self, text):
 
@@ -389,6 +452,8 @@ class FrierenCompanion(QWidget):
             self.active_app = detected_app
 
             print(f"Activity: {self.active_app}")
+
+            self.app_reaction()
         
       
 # Start timer that checks and updates states
