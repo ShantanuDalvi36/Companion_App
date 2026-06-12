@@ -24,7 +24,8 @@ class FrierenCompanion(QWidget):
         self.wake_up_until = 0
         self.last_petting_movement = 0
         self.start_mouse_listener()
-
+        self.reaction_until = 0
+        self.current_reaction = None
         self.normal_width = 180
         self.normal_height = 180
 
@@ -256,6 +257,7 @@ class FrierenCompanion(QWidget):
         )
 
     self.last_dialogue_time = current_time
+
 # Dialogue box 
    def show_dialogue(self, text):
 
@@ -450,6 +452,8 @@ class FrierenCompanion(QWidget):
         if detected_app != self.active_app:
 
             self.active_app = detected_app
+            self.current_reaction = detected_app
+            self.reaction_until = time.time() + 4
 
             print(f"Activity: {self.active_app}")
 
@@ -490,6 +494,8 @@ class FrierenCompanion(QWidget):
 
         current_time = time.time()
 
+        
+
         if self.is_dragging:
             new_state = "DRAGGING"
 
@@ -501,6 +507,9 @@ class FrierenCompanion(QWidget):
 
         elif current_time - self.last_keypress_time < 3:
             new_state = "TYPING"
+            
+        elif current_time < self.reaction_until:
+            new_state = "APP_REACTION"
 
         else:
             new_state = "IDLE"
@@ -735,6 +744,32 @@ class FrierenCompanion(QWidget):
 
             self.last_idle_switch = time.time()
             self.idle_switch_interval = random.randint(15, 30)
+        
+        elif new_state == "APP_REACTION":
+
+            if self.current_reaction == "CODING":
+
+                self.set_character_image(
+                    "assets/fri_writting.png"
+                )
+
+            elif self.current_reaction == "AI":
+
+                self.set_character_image(
+                    "assets/fri_wake_up.png"
+                )
+
+            elif self.current_reaction == "WATCHING":
+
+                self.set_character_image(
+                    "assets/frieren.png"
+                )
+
+            elif self.current_reaction == "CHAT":
+
+                self.set_character_image(
+                    "assets/fri_dragging.png"
+                )
 
         # unlock after short delay
         QTimer.singleShot(300, self.unlock_visual)
